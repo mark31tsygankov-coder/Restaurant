@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>OMNIRO</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #ffffff;
+      --muted: #888888;
+      --accent: #ffffff;
+      --success: #e8e8e8;
+      --radius: 18px;
+      --radius-sm: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      min-height: 100%;
+      overscroll-behavior: none;
+    }
+    body { padding: 0 16px 28px; }
+
+    /* ── header ── */
+    .top {
+      padding: 20px 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+    }
+    .brand span { opacity: 0.45; font-weight: 500; }
+    .pill {
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--surface);
+    }
+    .pill.on { color: #fff; border-color: #444; background: #1c1c1c; }
+
+    /* ── screens ── */
+    .screen { display: none; animation: fadeIn 0.28s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+    .card h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    /* ── status ── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #555;
+      flex-shrink: 0;
+    }
+    .dot.live {
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.12);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(255,255,255,0.12); }
+      50% { box-shadow: 0 0 0 8px rgba(255,255,255,0.04); }
+    }
+    .status-text { font-size: 17px; font-weight: 700; }
+    .status-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* ── key box ── */
+    .key-box {
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      word-break: break-all;
+      line-height: 1.45;
+      color: #ccc;
+      border: 1px solid var(--border);
+      min-height: 48px;
+    }
+    .key-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* ── buttons ── */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      border: none;
+      border-radius: 999px;
+      padding: 15px 18px;
+      font-size: 15px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+                  background 0.15s, opacity 0.15s, box-shadow 0.15s;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--x,50%) var(--y,50%), rgba(255,255,255,0.18), transparent 50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .btn.ripple::after { opacity: 1; }
+    .btn-primary {
+      background: #fff;
+      color: #000;
+      box-shadow: 0 4px 20px rgba(255,255,255,0.08);
+    }
+    .btn-primary:active { box-shadow: 0 2px 10px rgba(255,255,255,0.06); }
+    .btn-ghost {
+      background: var(--surface2);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:active { background: #222; }
+    .btn-sm {
+      padding: 11px 14px;
+      font-size: 13px;
+      border-radius: 999px;
+      flex: 1;
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    /* ── nav grid ── */
+    .nav-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 16px 0 8px;
+    }
+    .nav-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.12s, background 0.15s, border-color 0.15s;
+    }
+    .nav-item:active { transform: scale(0.96); background: var(--surface2); }
+    .nav-item .ico {
+      font-size: 26px;
+      margin-bottom: 8px;
+      display: block;
+      filter: grayscale(1);
+    }
+    .nav-item .lbl {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ddd;
+    }
+
+    /* ── plans ── */
+    .plan {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .plan:active { transform: scale(0.98); }
+    .plan.sel {
+      border-color: #fff;
+      background: #161616;
+      box-shadow: 0 0 0 1px #fff;
+    }
+    .plan .badge {
+      position: absolute;
+      top: -9px;
+      right: 14px;
+      background: #fff;
+      color: #000;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+    .plan-name { font-size: 16px; font-weight: 700; }
+    .plan-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .plan-price { text-align: right; }
+    .plan-price .sum { font-size: 20px; font-weight: 800; }
+    .plan-price .sub { font-size: 11px; color: var(--muted); }
+
+    /* ── form ── */
+    .input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      margin-bottom: 12px;
+      transition: border-color 0.15s;
+    }
+    .input:focus { border-color: #555; }
+    .input::placeholder { color: #555; }
+
+    /* ── back ── */
+    .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      cursor: pointer;
+      padding: 6px 0;
+    }
+    .back:active { opacity: 0.7; }
+
+    /* ── toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #fff;
+      color: #000;
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 100;
+      white-space: nowrap;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .loader {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid #333;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 14px;
+      line-height: 1.4;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -0.3px;
+    }
+    .empty {
+      text-align: center;
+      padding: 28px 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand">OMNIRO <span>VPN</span></div>
+    <div class="pill" id="statusPill">…</div>
+  </div>
+
+  <!-- HOME -->
+  <div class="screen active" id="home">
+    <div class="card" id="statusCard">
+      <h3>Подписка</h3>
+      <div class="status-row">
+        <div class="dot" id="statusDot"></div>
+        <div>
+          <div class="status-text" id="statusTitle">Загрузка…</div>
+          <div class="status-sub" id="statusSub"></div>
+        </div>
+      </div>
+      <div id="keySection" style="display:none">
+        <div class="key-box" id="keyBox">—</div>
+        <div class="key-actions">
+          <button class="btn btn-ghost btn-sm" id="copyBtn" onclick="copyKey()">Копировать ключ</button>
+          <button class="btn btn-primary btn-sm" id="openLinkBtn" onclick="openKey()">Открыть</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-grid">
+      <div class="nav-item" onclick="go('buy')">
+        <span class="ico">🛒</span>
+        <span class="lbl">Купить</span>
+      </div>
+      <div class="nav-item" onclick="go('gift')">
+        <span class="ico">🎁</span>
+        <span class="lbl">Подарить</span>
+      </div>
+      <div class="nav-item" onclick="go('subs')">
+        <span class="ico">📦</span>
+        <span class="lbl">Мои подписки</span>
+      </div>
+      <div class="nav-item" onclick="go('support')">
+        <span class="ico">💬</span>
+        <span class="lbl">Поддержка</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-top:8px" onclick="go('buy')">Купить VPN</button>
+    <p class="hint">Оплата картой · СБП · крипта · активация сразу</p>
+  </div>
+
+  <!-- BUY -->
+  <div class="screen" id="buy">
+    <div class="back" onclick="go('home')">← Назад</div>
+    <div class="section-title">Выбери тариф</div>
+    <div id="plansList"></div>
+    <button class="btn btn-primary" id="buyBtn" onclick="createOrder(false)" disabled style="margin-top:8px">
+      Купить
+    </button>
+    <p class="hint">После оплаты подписка активируется автоматически</p>
+  </div>
+
+  <!-- GIFT -->
+  <div class="screen" id="gift">
+    <div class="back" onclick="go('home')">← Назад</div>
+    <div class="section-title">Подарить VPN</div>
+    <div class="card">
+      <h3>Telegram ID получателя</h3>
+      <input class="input" id="giftId" type="number" inputmode="numeric" placeholder="Например: 123456789" />
+      <p style="font-size:12px;color:var(--muted)">Пользователь может узнать свой ID в боте → Профиль</p>
+    </div>
+    <div id="giftPlans"></div>
+    <button class="btn btn-primary" id="giftBtn" onclick="createOrder(true)" disabled style="margin-top:8px">
+      Подарить
+    </button>
+  </div>
+
+  <!-- SUBS -->
+  <div class="screen" id="subs">
+    <div class="back" onclick="go('home')">← Назад</div>
+    <div class="section-title">Мои подписки</div>
+    <div class="card" id="subsCard">
+      <div class="empty">Загрузка…</div>
+    </div>
+    <button class="btn btn-ghost" onclick="go('buy')" style="margin-top:8px">Продлить / Купить</button>
+  </div>
+
+  <!-- SUPPORT -->
+  <div class="screen" id="support">
+    <div class="back" onclick="go('home')">← Назад</div>
+    <div class="section-title">Поддержка</div>
+    <div class="card">
+      <p style="font-size:14px;line-height:1.5;color:#ccc;margin-bottom:16px">
+        Опиши проблему — ответим в чате с ботом как можно скорее.
+      </p>
+      <button class="btn btn-primary" onclick="openSupport()">Написать в поддержку</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      try {
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
+        tg.enableClosingConfirmation();
+      } catch(e) {}
+    }
+
+    let userData = null;
+    let selectedPlan = 'm3';
+    let selectedGiftPlan = 'm3';
+
+    const PLANS_FALLBACK = {
+      m1: { name: '1 месяц', days: 30, price: 79 },
+      m3: { name: '3 месяца', days: 90, price: 219 },
+      m6: { name: '6 месяцев', days: 180, price: 399 }
+    };
+
+    function haptic(type = 'light') {
+      try {
+        if (type === 'success') tg?.HapticFeedback?.notificationOccurred('success');
+        else if (type === 'error') tg?.HapticFeedback?.notificationOccurred('error');
+        else tg?.HapticFeedback?.impactOccurred(type);
+      } catch(e) {}
+    }
+
+    function toast(msg, ms = 2200) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove('show'), ms);
+    }
+
+    // ripple effect on buttons
+    document.addEventListener('pointerdown', (e) => {
+      const btn = e.target.closest('.btn');
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      btn.style.setProperty('--x', (e.clientX - r.left) + 'px');
+      btn.style.setProperty('--y', (e.clientY - r.top) + 'px');
+      btn.classList.add('ripple');
+      setTimeout(() => btn.classList.remove('ripple'), 350);
+    });
+
+    function go(id) {
+      haptic('light');
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'subs') renderSubs();
+      if (id === 'buy' || id === 'gift') renderPlans();
+      try { tg?.MainButton?.hide(); } catch(e) {}
+    }
+
+    function initDataHeader() {
+      return tg?.initData || '';
+    }
+
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/user', {
+          headers: { 'X-Telegram-Init-Data': initDataHeader() }
+        });
+        if (!res.ok) throw new Error('api ' + res.status);
+        userData = await res.json();
+        if (!userData.ok) throw new Error(userData.error || 'fail');
+        renderHome();
+        renderPlans();
+      } catch (e) {
+        console.warn(e);
+        document.getElementById('statusTitle').textContent = 'Не удалось загрузить';
+        document.getElementById('statusSub').textContent = 'Открой приложение из Telegram';
+        document.getElementById('statusPill').textContent = 'оффлайн';
+        // fallback plans
+        userData = { plans: PLANS_FALLBACK, active: false, sub_link: '' };
+        renderPlans();
+      }
+    }
+
+    function renderHome() {
+      const active = userData.active;
+      const pill = document.getElementById('statusPill');
+      const dot = document.getElementById('statusDot');
+      const title = document.getElementById('statusTitle');
+      const sub = document.getElementById('statusSub');
+      const keySec = document.getElementById('keySection');
+      const keyBox = document.getElementById('keyBox');
+
+      if (active) {
+        pill.textContent = 'активна';
+        pill.classList.add('on');
+        dot.classList.add('live');
+        title.textContent = 'Подписка активна';
+        sub.textContent = `до ${userData.expires_fmt} · ~${userData.days_left} дн.`;
+        if (userData.sub_link) {
+          keySec.style.display = 'block';
+          keyBox.textContent = userData.sub_link;
+        } else {
+          keySec.style.display = 'none';
+        }
+      } else {
+        pill.textContent = 'нет подписки';
+        pill.classList.remove('on');
+        dot.classList.remove('live');
+        title.textContent = 'Нет активной подписки';
+        sub.textContent = userData.expires_fmt ? `истекла ${userData.expires_fmt}` : 'Выбери тариф и оплати';
+        keySec.style.display = 'none';
+      }
+    }
+
+    function renderPlans() {
+      const plans = (userData && userData.plans) || PLANS_FALLBACK;
+      const make = (containerId, selectedVar, onSelect) => {
+        const el = document.getElementById(containerId);
+        el.innerHTML = '';
+        const order = ['m1', 'm3', 'm6'];
+        order.forEach((k, i) => {
+          const p = plans[k];
+          if (!p) return;
+          const div = document.createElement('div');
+          div.className = 'plan' + ((selectedVar === k) ? ' sel' : '');
+          div.dataset.plan = k;
+          const per = Math.round(p.price / (p.days / 30));
+          div.innerHTML = `
+            ${k === 'm3' ? '<span class="badge">ВЫГОДНО</span>' : ''}
+            <div>
+              <div class="plan-name">${p.name}</div>
+              <div class="plan-desc">${p.days} дней</div>
+            </div>
+            <div class="plan-price">
+              <div class="sum">${p.price} ₽</div>
+              <div class="sub">~${per} ₽/мес</div>
+            </div>
+          `;
+          div.onclick = () => {
+            haptic('light');
+            onSelect(k);
+            renderPlans();
+          };
+          el.appendChild(div);
+        });
+      };
+      make('plansList', selectedPlan, k => {
+        selectedPlan = k;
+        document.getElementById('buyBtn').disabled = false;
+        document.getElementById('buyBtn').textContent = `Купить · ${((userData.plans||PLANS_FALLBACK)[k]).price} ₽`;
+      });
+      make('giftPlans', selectedGiftPlan, k => {
+        selectedGiftPlan = k;
+        document.getElementById('giftBtn').disabled = !document.getElementById('giftId').value;
+        document.getElementById('giftBtn').textContent = `Подарить · ${((userData.plans||PLANS_FALLBACK)[k]).price} ₽`;
+      });
+      // init button texts
+      const bp = (userData.plans||PLANS_FALLBACK)[selectedPlan];
+      document.getElementById('buyBtn').disabled = false;
+      document.getElementById('buyBtn').textContent = `Купить · ${bp.price} ₽`;
+      document.getElementById('giftId').oninput = () => {
+        document.getElementById('giftBtn').disabled = !document.getElementById('giftId').value.trim();
+      };
+    }
+
+    function renderSubs() {
+      const card = document.getElementById('subsCard');
+      if (!userData) {
+        card.innerHTML = '<div class="empty">Нет данных</div>';
+        return;
+      }
+      if (userData.active) {
+        card.innerHTML = `
+          <h3>Активная</h3>
+          <div class="status-row">
+            <div class="dot live"></div>
+            <div>
+              <div class="status-text">Активна</div>
+              <div class="status-sub">до ${userData.expires_fmt} · осталось ~${userData.days_left} дн.</div>
+            </div>
+          </div>
+          ${userData.sub_link ? `
+            <div class="key-box" style="margin-top:12px">${userData.sub_link}</div>
+            <div class="key-actions">
+              <button class="btn btn-ghost btn-sm" onclick="copyKey()">Копировать</button>
+              <button class="btn btn-primary btn-sm" onclick="openKey()">Открыть ссылку</button>
+            </div>
+          ` : '<p class="empty" style="padding:12px 0">Ключ формируется… напиши в поддержку если долго</p>'}
+        `;
+      } else {
+        card.innerHTML = `
+          <div class="empty">
+            У вас нет активных подписок.<br>
+            Выберите тариф и оплатите — ключ появится здесь.
+          </div>
+        `;
+      }
+    }
+
+    function copyKey() {
+      const link = userData?.sub_link;
+      if (!link) return toast('Нет ключа');
+      haptic('success');
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(link).then(() => toast('Ключ скопирован')).catch(() => fallbackCopy(link));
+      } else fallbackCopy(link);
+    }
+    function fallbackCopy(t) {
+      const ta = document.createElement('textarea');
+      ta.value = t;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); toast('Ключ скопирован'); } catch(e) { toast('Скопируй вручную'); }
+      ta.remove();
+    }
+    function openKey() {
+      const link = userData?.sub_link;
+      if (!link) return;
+      haptic('light');
+      try { tg?.openLink(link); } catch(e) { window.open(link, '_blank'); }
+    }
+
+    async function createOrder(isGift) {
+      const plan = isGift ? selectedGiftPlan : selectedPlan;
+      const btn = document.getElementById(isGift ? 'giftBtn' : 'buyBtn');
+      const target = isGift ? document.getElementById('giftId').value.trim() : null;
+      if (isGift && !target) {
+        toast('Укажи Telegram ID');
+        haptic('error');
+        return;
+      }
+      btn.disabled = true;
+      const old = btn.textContent;
+      btn.innerHTML = '<span class="loader"></span>';
+      haptic('medium');
+
+      try {
+        const res = await fetch('/api/order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Telegram-Init-Data': initDataHeader()
+          },
+          body: JSON.stringify({ plan, target_id: target || undefined })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'error');
+        haptic('success');
+        toast('Заказ создан — открываем оплату');
+        // open payment
+        setTimeout(() => {
+          try { tg.openLink(data.pay_url); } catch(e) { window.open(data.pay_url, '_blank'); }
+        }, 300);
+        // also notify in chat via sendData (optional backup)
+        try {
+          tg.sendData(JSON.stringify({
+            action: isGift ? 'gift_plan' : 'buy_plan',
+            plan,
+            target_id: target,
+            order_id: data.order_id
+          }));
+        } catch(e) {}
+      } catch (e) {
+        console.error(e);
+        haptic('error');
+        toast('Ошибка: ' + (e.message || 'попробуй позже'));
+        // fallback: sendData to bot
+        try {
+          tg.sendData(JSON.stringify({
+            action: isGift ? 'gift_plan' : 'buy_plan',
+            plan,
+            target_id: target
+          }));
+          toast('Отправили в бот');
+        } catch(err) {}
+      } finally {
+        btn.disabled = false;
+        btn.textContent = old;
+      }
+    }
+
+    function openSupport() {
+      haptic('light');
+      try {
+        tg.sendData(JSON.stringify({ action: 'open_support' }));
+        toast('Напиши сообщение в чат с ботом');
+        setTimeout(() => tg.close(), 500);
+      } catch(e) {
+        toast('Открой бота и нажми Поддержка');
+      }
+    }
+
+    // boot
+    loadUser();
+  </script>
+</body>
+</html>
